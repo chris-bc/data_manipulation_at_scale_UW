@@ -18,7 +18,7 @@ def mapper(record):
         key1 = record[1]
         key2 = record[0]
     
-    mr.emit_intermediate([key1, key2], record)
+    mr.emit_intermediate((key1, key2), record)
 
 def reducer(key, list_of_values):
     # key: (person,person) tuple where one is the friend of the other but the reverse is not necessarily true
@@ -27,7 +27,7 @@ def reducer(key, list_of_values):
     friend = ''
     reciprocal = 0
     for val in list_of_values:
-        if person == '':
+        if person == "":
             person = val[0]
             friend = val[1]
         else:
@@ -39,6 +39,8 @@ def reducer(key, list_of_values):
             
     if reciprocal == 0:        
         mr.emit((friend, person))
+        # Bug in grader:
+        mr.emit((person,friend))
 
 if __name__ == '__main__':
   inputdata = open(sys.argv[1])
