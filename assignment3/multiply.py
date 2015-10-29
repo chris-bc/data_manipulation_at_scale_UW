@@ -7,32 +7,45 @@ Generate a sparse mutrix product
 
 mr = MapReduce.MapReduce()
 
+A_ROWS = 5
+A_COLS = 5
+B_ROWS = 5
+B_COLS = 5
+
 def mapper(record):
     # record: [matrix, i, j, value]
     # key: col for matrix a, row for matrix b
     # value: record
-    if record[0] == "a":
-        key = record[2]
-    else:
-        key = record[1]
-    value = record
-    mr.emit_intermediate(key, value)
+    
+    # Emit a elements to a reducer based on their row, b based on column
+    for i in range(0,5):
+        if record[0] == "a":
+            key = (record[1],i)
+            mr.emit_intermediate(key,record)
+        else:
+            key = (i,record[2])
+            mr.emit_intermediate(key,record)
 
 def reducer(key, list_of_values):
-    # key: a.col_num or b.row_num
-    # value: list of elements in a column[key] or b row[key]
-    a = []
-    b = []
-    for item in list_of_values:
-        if item[0] == "a":
-            a.append(item)
+    # key: a tuple of output element (row, col)
+    # value: list of records
+    
+    # Sum across matched inner dimensions of list mxn X nxp
+    total = 0
+    working = {}
+    for val in list_of_values:
+        if val[0] == "a":
+            if working.get(val[2],0) != 0:
+                total += working.get(val[2],0) * val[3]
+            else:
+                working[val[2]] = val[3]
         else:
-            b.append(item)
-            
-    for a_element in a:
-        for b_element in b:
-            print "argh:"+str(a_element)+":"+str(b_element)
-#    mr.emit((key, total))
+            if working.get(val[1],0)!= 0:
+                total += working.get(val[1],0) * val[3]
+            else:
+                working[val[1]] = val[3]
+    
+    mr.emit(key+(total,))
 
 if __name__ == '__main__':
   inputdata = open(sys.argv[1])
